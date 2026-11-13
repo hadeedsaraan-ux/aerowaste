@@ -1,286 +1,420 @@
-// --- Planetary State ---
-let state = {
-  aqi: 342,
-  oxygen: 12.5,
-  energy: 1420,
-  vBlocks: 0,
-  bagCount: 0,
-  sessionOxygen: 0,
-  launchFuel: 1420,
-  targetFuel: 5000,
-  isRefining: false,
-  isLaunching: false
+// --- Planetary Global State ---
+const gameState = {
+  earthAqi: 382,
+  maya: {
+    unlocked: true,
+    completed: false,
+    polymersHarvested: 0,
+    targetPolymers: 30,
+    lungFilter: 18,
+    oxygenReserve: 3.2
+  },
+  kael: {
+    unlocked: false,
+    completed: false,
+    plasmaTemp: 1800,
+    vBlocksForged: 0,
+    targetVBlocks: 2,
+    powerGenerated: 1400,
+    targetPower: 5000
+  },
+  vance: {
+    unlocked: false,
+    completed: false,
+    railCharge: 28,
+    trajectoryLocked: false
+  },
+  currentOperative: null,
+  audioPlaying: false
 };
 
 // --- DOM References ---
-const aqiDisplay = document.getElementById('aqi-display');
-const oxygenDisplay = document.getElementById('oxygen-display');
-const energyDisplay = document.getElementById('energy-display');
-const vblocksDisplay = document.getElementById('vblocks-display');
-const bagCountDisplay = document.getElementById('bag-count');
-const sessionOxygenDisplay = document.getElementById('session-oxygen');
-const wasteField = document.getElementById('waste-field');
-const coreStatus = document.getElementById('core-status');
-const fuelProgressBar = document.getElementById('fuel-progress-bar');
-const fuelPctDisplay = document.getElementById('fuel-pct');
-const btnLaunch = document.getElementById('btn-launch-shuttle');
-const launchMsg = document.getElementById('launch-msg');
-const trajStatus = document.getElementById('traj-status');
-const trajVel = document.getElementById('traj-vel');
+const screenSelect = document.getElementById('screen-character-select');
+const screenCockpit = document.getElementById('screen-mission-cockpit');
+const btnBack = document.getElementById('btn-back-to-select');
+const activeOpTitle = document.getElementById('active-op-title');
+const missionObjective = document.getElementById('mission-objective');
+const hudToxin = document.getElementById('hud-toxin');
+const hudReserve = document.getElementById('hud-reserve');
+const stageWorkspace = document.getElementById('stage-workspace');
+const dialogueSpeaker = document.getElementById('dialogue-speaker');
+const dialogueText = document.getElementById('dialogue-text');
+const controlActions = document.getElementById('control-buttons-container');
+const missionLog = document.getElementById('mission-log');
+const btnAudio = document.getElementById('btn-ambient-sound');
+const globalTimer = document.getElementById('global-timer');
 
-// Canvas
-const canvas = document.getElementById('orbitCanvas');
-const ctx = canvas.getContext('2d');
+const cardKael = document.getElementById('card-kael');
+const cardVance = document.getElementById('card-vance');
 
-// Waste items generator
-const debrisTypes = [
-  { name: 'PET Bottle', kg: 0.25 },
-  { name: 'Polyethylene Bag', kg: 0.15 },
-  { name: 'Industrial Scrap', kg: 1.2 },
-  { name: 'Microplastic Silt', kg: 0.5 },
-  { name: 'Synthetic Mesh', kg: 0.8 }
-];
+// --- Web Audio API: Procedural Sci-Fi Ambient Drone ---
+let audioCtx = null;
+let droneOsc = null;
+let droneGain = null;
 
-function spawnDebris() {
-  wasteField.innerHTML = '';
-  for (let i = 0; i < 7; i++) {
-    const item = debrisTypes[Math.floor(Math.random() * debrisTypes.length)];
-    const token = document.createElement('div');
-    token.className = 'waste-token';
-    token.textContent = `${item.name} (${item.kg}kg)`;
-    token.onclick = () => collectSingleDebris(token, item.kg);
-    wasteField.appendChild(token);
+function toggleAmbientAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
-}
 
-function collectSingleDebris(element, kg) {
-  state.bagCount = parseFloat((state.bagCount + kg).toFixed(2));
-  const earnedO2 = parseFloat((kg * 1.5).toFixed(2));
-  state.sessionOxygen = parseFloat((state.sessionOxygen + earnedO2).toFixed(2));
-  
-  element.style.transform = 'scale(0)';
-  setTimeout(() => element.remove(), 200);
+  if (!gameState.audioPlaying) {
+    audioCtx.resume();
+    droneOsc = audioCtx.createOscillator();
+    droneGain = audioCtx.createGain();
 
-  updateUI();
-  if (wasteField.children.length <= 1) {
-    setTimeout(spawnDebris, 500);
-  }
-}
+    droneOsc.type = 'sawtooth';
+    droneOsc.frequency.setValueAtTime(55, audioCtx.currentTime); // Low A1 note
 
-// Button Events
-document.getElementById('btn-collect-all').addEventListener('click', () => {
-  const tokens = Array.from(wasteField.querySelectorAll('.waste-token'));
-  tokens.forEach((t, idx) => {
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(220, audioCtx.currentTime);
+
+    droneGain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+
+    droneOsc.connect(filter);
+    filter.connect(droneGain);
+    droneGain.connect(audioCtx.destination);
+
+    droneOsc.start();
+    gameState.audioPlaying = true;
+    btnAudio.textContent = '🔊 AUDIO: ACTIVE';
+    btnAudio.style.borderColor = 'var(--cyan-neon)';
+    addLog('[COMM] Atmospheric audio feed connected.', 'sys');
+  } else {
+    droneGain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.5);
     setTimeout(() => {
-      state.bagCount = parseFloat((state.bagCount + 0.5).toFixed(2));
-      state.sessionOxygen = parseFloat((state.sessionOxygen + 0.75).toFixed(2));
-      t.remove();
-      updateUI();
-      if (idx === tokens.length - 1) setTimeout(spawnDebris, 400);
-    }, idx * 60);
+      droneOsc.stop();
+      droneOsc.disconnect();
+      gameState.audioPlaying = false;
+      btnAudio.textContent = '🔇 AMBIENT AUDIO';
+      btnAudio.style.borderColor = 'rgba(255,255,255,0.15)';
+    }, 500);
+  }
+}
+btnAudio.addEventListener('click', toggleAmbientAudio);
+
+// --- Mission Log Helper ---
+function addLog(msg, type = 'normal') {
+  const p = document.createElement('p');
+  p.className = `log-entry ${type}`;
+  p.textContent = msg;
+  missionLog.appendChild(p);
+  missionLog.scrollTop = missionLog.scrollHeight;
+}
+
+// --- Cinematic Typewriter Effect ---
+let typeTimeout = null;
+function typeDialogue(speaker, text) {
+  clearTimeout(typeTimeout);
+  dialogueSpeaker.textContent = speaker.toUpperCase();
+  dialogueText.textContent = '';
+  let i = 0;
+  function step() {
+    if (i < text.length) {
+      dialogueText.textContent += text.charAt(i);
+      i++;
+      typeTimeout = setTimeout(step, 18);
+    }
+  }
+  step();
+}
+
+// --- Operative Navigation ---
+document.querySelectorAll('.character-card').forEach(card => {
+  card.addEventListener('click', () => {
+    const char = card.dataset.char;
+    if (card.classList.contains('locked')) {
+      return addLog(`[SECURITY] Operative ${char.toUpperCase()} is locked. Complete previous mission.`, 'alert');
+    }
+    loadOperativeCockpit(char);
   });
 });
 
-document.getElementById('btn-deposit-refinery').addEventListener('click', () => {
-  if (state.bagCount <= 0) return alert('Your collection bag is empty! Harvest some debris first.');
-  state.oxygen = parseFloat((state.oxygen + state.sessionOxygen).toFixed(2));
-  const depositedKg = state.bagCount;
-  state.bagCount = 0;
-  state.sessionOxygen = 0;
+btnBack.addEventListener('click', () => {
+  screenCockpit.classList.remove('active');
+  screenSelect.classList.add('active');
+  updateSelectionCards();
+});
+
+function loadOperativeCockpit(char) {
+  gameState.currentOperative = char;
+  screenSelect.classList.remove('active');
+  screenCockpit.classList.add('active');
+
+  controlActions.innerHTML = '';
+  stageWorkspace.innerHTML = '';
+
+  if (char === 'maya') setupMayaMission();
+  if (char === 'kael') setupKaelMission();
+  if (char === 'vance') setupVanceMission();
+}
+
+// ==========================================
+// 1. MAYA CHEN (GROUND SCAVENGER)
+// ==========================================
+function setupMayaMission() {
+  activeOpTitle.textContent = 'OPERATIVE: MAYA CHEN // SECTOR 04';
+  missionObjective.textContent = `OBJECTIVE: Harvest ${gameState.maya.targetPolymers}kg polymers & restore oxygen`;
   
-  // Instant visual feedback
-  coreStatus.textContent = `QUEUED: ${depositedKg}kg POLYMERS`;
-  updateUI();
-});
+  hudToxin.textContent = '488 PPM';
+  hudToxin.className = 'hud-val color-warn';
+  hudReserve.textContent = `${gameState.maya.oxygenReserve} L`;
+  hudReserve.className = 'hud-val color-cyan';
 
-document.getElementById('btn-refine').addEventListener('click', () => {
-  if (state.isRefining) return;
-  state.isRefining = true;
-  coreStatus.textContent = 'VITRIFYING SLUDGE...';
-  coreStatus.style.color = 'var(--amber-neon)';
+  typeDialogue('MAYA', '"The acid fog is thick today. My throat burns... I need 30kg of high-grade plastic to sell to Dr. Kael\'s sub-refinery before my rebreather shuts down."');
 
-  setTimeout(() => {
-    // Generate Energy and V-Blocks
-    const generatedEnergy = 850;
-    state.energy += generatedEnergy;
-    state.vBlocks += 1;
-    state.aqi = Math.max(45, state.aqi - 18); // Reduce pollution
+  // Interactive Stage: Spawn Debris Grid
+  renderMayaWorkspace();
 
-    coreStatus.textContent = '+1 V-BLOCK FORGED';
-    coreStatus.style.color = 'var(--emerald-neon)';
-    state.isRefining = false;
+  // Control Buttons
+  const btnScan = document.createElement('button');
+  btnScan.className = 'cockpit-btn btn-action-primary';
+  btnScan.textContent = '⚡ Ultrasonic Pulse Scan (Find Polymers)';
+  btnScan.onclick = () => {
+    addLog('[RADAR] Dense microplastic silt and polymer hulls tagged in Sector 04.', 'sys');
+    renderMayaWorkspace(true);
+  };
 
-    updateUI();
-  }, 1200);
-});
+  const btnBreathe = document.createElement('button');
+  btnBreathe.className = 'cockpit-btn';
+  btnBreathe.textContent = '🫁 Emergency Adrenaline Filter Purge';
+  btnBreathe.onclick = () => {
+    gameState.maya.lungFilter = Math.min(100, gameState.maya.lungFilter + 15);
+    addLog('[BIO] Lung filter flushed. Respiration stabilized momentarily.', 'success');
+  };
 
-document.getElementById('btn-feed-grid').addEventListener('click', () => {
-  if (state.energy <= 0) return alert('No surplus energy in bank to transfer!');
-  const transfer = Math.min(state.energy, 1200);
-  state.energy -= transfer;
-  state.launchFuel = Math.min(state.targetFuel, state.launchFuel + transfer);
-  updateUI();
-});
+  controlActions.appendChild(btnScan);
+  controlActions.appendChild(btnBreathe);
+}
 
-document.getElementById('btn-launch-shuttle').addEventListener('click', () => {
-  if (state.launchFuel < state.targetFuel || state.vBlocks < 1 || state.isLaunching) return;
-  startLaunchSequence();
-});
+function renderMayaWorkspace(pulse = false) {
+  stageWorkspace.innerHTML = '';
+  const container = document.createElement('div');
+  container.style.cssText = 'display:flex; flex-wrap:wrap; gap:12px; justify-content:center; max-width:440px;';
 
-function updateUI() {
-  aqiDisplay.textContent = `${state.aqi} (${state.aqi < 100 ? 'Moderate' : 'Severe'})`;
-  if (state.aqi < 150) aqiDisplay.className = 'value success';
-  oxygenDisplay.textContent = `${state.oxygen} L`;
-  energyDisplay.textContent = `${state.energy} kWh`;
-  vblocksDisplay.textContent = `${state.vBlocks} Units`;
-  bagCountDisplay.textContent = `${state.bagCount} kg`;
-  sessionOxygenDisplay.textContent = `+${state.sessionOxygen} L`;
+  const items = [
+    { name: 'Industrial Polycarbonate', kg: 6.5 },
+    { name: 'Contaminated PET Slurry', kg: 4.2 },
+    { name: 'Nylon Mesh Shards', kg: 5.0 },
+    { name: 'High-Density Polymer Core', kg: 8.5 },
+    { name: 'Degraded Silt Pellets', kg: 6.0 }
+  ];
 
-  // Fuel bar
-  const pct = Math.min(100, Math.round((state.launchFuel / state.targetFuel) * 100));
-  fuelProgressBar.style.width = `${pct}%`;
-  fuelPctDisplay.textContent = `${pct}% (${state.launchFuel} / ${state.targetFuel} kWh)`;
+  items.forEach(item => {
+    const chip = document.createElement('div');
+    chip.style.cssText = `
+      background: ${pulse ? 'rgba(0, 240, 255, 0.25)' : 'rgba(255, 183, 3, 0.15)'};
+      border: 1px solid ${pulse ? 'var(--cyan-neon)' : 'var(--amber-neon)'};
+      color: #fff;
+      padding: 10px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      user-select: none;
+      transition: all 0.2s;
+    `;
+    chip.textContent = `[+] ${item.name} (${item.kg}kg)`;
+    chip.onclick = () => harvestItem(chip, item.kg);
+    container.appendChild(chip);
+  });
 
-  // Check launch condition
-  if (state.launchFuel >= state.targetFuel && state.vBlocks >= 1) {
-    btnLaunch.disabled = false;
-    launchMsg.textContent = 'ALL SYSTEMS GO — Trans-Venus trajectory lock acquired.';
-    launchMsg.style.color = 'var(--emerald-neon)';
-  } else {
-    btnLaunch.disabled = true;
-    launchMsg.textContent = `Requires: Min 1 V-Block (${state.vBlocks}/1) & 5,000 kWh (${state.launchFuel}/5,000)`;
-    launchMsg.style.color = 'var(--text-muted)';
+  stageWorkspace.appendChild(container);
+}
+
+function harvestItem(element, kg) {
+  gameState.maya.polymersHarvested += kg;
+  gameState.maya.oxygenReserve += parseFloat((kg * 0.6).toFixed(1));
+  hudReserve.textContent = `${gameState.maya.oxygenReserve.toFixed(1)} L`;
+
+  element.style.transform = 'scale(0)';
+  setTimeout(() => element.remove(), 200);
+
+  addLog(`[SCAVENGE] Harvested ${kg}kg polymers. Earned +${(kg * 0.6).toFixed(1)}L medical oxygen.`, 'normal');
+
+  if (gameState.maya.polymersHarvested >= gameState.maya.targetPolymers && !gameState.maya.completed) {
+    gameState.maya.completed = true;
+    gameState.kael.unlocked = true;
+    typeDialogue('MAYA', '"Bag is full! 30kg secured. Transmitting haul directly to Dr. Kael\'s underground furnace. My lungs can breathe again!"');
+    addLog('[MISSION ACCOMPLISHED] Maya secured required polymers. DR. KAEL UNLOCKED.', 'success');
+    updateSelectionCards();
   }
 }
 
-// --- Orbital Simulation (Canvas) ---
-let shuttle = {
-  active: false,
-  progress: 0,
-  x: 0,
-  y: 0
-};
+// ==========================================
+// 2. DR. KAEL (PLASMA VITRIFICATION)
+// ==========================================
+function setupKaelMission() {
+  activeOpTitle.textContent = 'OPERATIVE: DR. KAELEN THORNE // SUB-TERRAIN';
+  missionObjective.textContent = `OBJECTIVE: Forge ${gameState.kael.targetVBlocks} Vitrified V-Blocks & Generate 5,000 kWh`;
 
-function drawOrbitSimulation() {
+  hudToxin.textContent = 'REACTOR: 1,800°C';
+  hudToxin.className = 'hud-val color-cyan';
+  hudReserve.textContent = `${gameState.kael.powerGenerated} kWh`;
+  hudReserve.className = 'hud-val color-amber';
+
+  typeDialogue('DR. KAEL', '"Maya\'s polymer shipment arrived. We won\'t burn this into the sky. We are vitrifying the chemical toxins into bulletproof glass blocks, and routing plasma power to the launch rail."');
+
+  renderKaelWorkspace();
+
+  const btnVitrify = document.createElement('button');
+  btnVitrify.className = 'cockpit-btn btn-action-primary';
+  btnVitrify.textContent = '🔥 Engage Plasma Arc (Forge V-Block)';
+  btnVitrify.onclick = () => forgeVBlock();
+
+  const btnDAC = document.createElement('button');
+  btnDAC.className = 'cockpit-btn';
+  btnDAC.textContent = '🌀 Direct Air Capture (Suck Atmospheric Soot)';
+  btnDAC.onclick = () => {
+    gameState.earthAqi = Math.max(30, gameState.earthAqi - 24);
+    globalTimer.textContent = `EARTH AQI: ${gameState.earthAqi} // RECOVERING`;
+    addLog('[DAC ENGINE] Electrostatic scrubber absorbed 1.2 metric tons of carbon soot.', 'success');
+  };
+
+  controlActions.appendChild(btnVitrify);
+  controlActions.appendChild(btnDAC);
+}
+
+function renderKaelWorkspace() {
+  stageWorkspace.innerHTML = `
+    <div style="text-align:center;">
+      <div style="width:140px; height:140px; border-radius:50%; border:2px dashed var(--cyan-neon); margin:0 auto 16px; display:flex; justify-content:center; align-items:center; background: radial-gradient(circle, rgba(0,240,255,0.4) 0%, transparent 70%);">
+        <span style="font-family:var(--font-mono); font-size:0.75rem; color:var(--cyan-neon);">PLASMA CORE<br>${gameState.kael.vBlocksForged}/${gameState.kael.targetVBlocks} BLOCKS</span>
+      </div>
+      <p style="font-family:var(--font-mono); font-size:0.85rem; color:var(--text-muted);">
+        Stabilized Inert Glass: <strong>${gameState.kael.vBlocksForged} Blocks</strong><br>
+        Grid Power for Rocket: <strong>${gameState.kael.powerGenerated} / 5,000 kWh</strong>
+      </p>
+    </div>
+  `;
+}
+
+function forgeVBlock() {
+  gameState.kael.vBlocksForged += 1;
+  gameState.kael.powerGenerated += 1800;
+  hudReserve.textContent = `${gameState.kael.powerGenerated} kWh`;
+  renderKaelWorkspace();
+
+  addLog(`[FURNACE] Toxins vitrified into bulletproof non-leaching glass. Generated +1,800 kWh.`, 'normal');
+
+  if (gameState.kael.vBlocksForged >= gameState.kael.targetVBlocks && gameState.kael.powerGenerated >= gameState.kael.targetPower && !gameState.kael.completed) {
+    gameState.kael.completed = true;
+    gameState.vance.unlocked = true;
+    typeDialogue('DR. KAEL', '"Both toxic V-Blocks are inert and solid. Launch power threshold exceeded! Alerting Commander Vance at the orbital gantry."');
+    addLog('[MISSION ACCOMPLISHED] Vitrification complete. COMMANDER VANCE UNLOCKED.', 'success');
+    updateSelectionCards();
+  }
+}
+
+// ==========================================
+// 3. COMMANDER VANCE (ORBITAL VENUS LAUNCH)
+// ==========================================
+function setupVanceMission() {
+  activeOpTitle.textContent = 'OPERATIVE: COMMANDER VANCE // EQUATORIAL GANTRY';
+  missionObjective.textContent = 'OBJECTIVE: Eject Vitrified Poison on Trans-Venus Slingshot';
+
+  hudToxin.textContent = 'RAIL: READY';
+  hudToxin.className = 'hud-val color-emerald';
+  hudReserve.textContent = 'TARGET: VENUS';
+  hudReserve.className = 'hud-val color-cyan';
+
+  typeDialogue('COMMANDER VANCE', '"Toxic glass payloads loaded into magnetic rail shuttle. We are using Earth\'s gravity assist to fling this poison toward Venus. Zero propellant smoke in our atmosphere."');
+
+  renderVanceWorkspace();
+
+  const btnLock = document.createElement('button');
+  btnLock.className = 'cockpit-btn';
+  btnLock.textContent = '📐 Calculate Hohmann Transfer Vector';
+  btnLock.onclick = () => {
+    gameState.vance.trajectoryLocked = true;
+    addLog('[GUIDANCE] Gravitational slingshot calculated. Perigee: 11.4 km/s. LOCK ACQUIRED.', 'sys');
+    renderVanceWorkspace(true);
+  };
+
+  const btnFire = document.createElement('button');
+  btnFire.className = 'cockpit-btn btn-action-primary';
+  btnFire.textContent = '🚀 FIRE NEGATIVE-EMISSION SHUTTLE';
+  btnFire.onclick = () => fireShuttle();
+
+  controlActions.appendChild(btnLock);
+  controlActions.appendChild(btnFire);
+}
+
+function renderVanceWorkspace(locked = false) {
+  stageWorkspace.innerHTML = `
+    <div style="width:100%; height:200px; background:#000; border-radius:10px; border:1px solid rgba(255,255,255,0.1); position:relative; overflow:hidden; display:flex; justify-content:center; align-items:center;">
+      <canvas id="cinemaCanvas" width="400" height="190"></canvas>
+    </div>
+  `;
+
+  const canvas = document.getElementById('cinemaCanvas');
+  const ctx = canvas.getContext('2d');
+
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-
-  // Background stars
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(40, 30, 1.5, 1.5);
-  ctx.fillRect(120, 180, 1, 1);
-  ctx.fillRect(380, 50, 1.5, 1.5);
-  ctx.fillRect(440, 200, 1, 1);
-
-  // Sun
+  // Draw Earth
   ctx.beginPath();
-  ctx.arc(cx - 100, cy, 14, 0, Math.PI * 2);
-  ctx.fillStyle = '#fbbf24';
-  ctx.shadowColor = '#fbbf24';
-  ctx.shadowBlur = 15;
-  ctx.fill();
-  ctx.shadowBlur = 0;
-
-  // Orbit Paths
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-  ctx.lineWidth = 1;
-  
-  // Venus Orbit
-  ctx.beginPath();
-  ctx.arc(cx - 100, cy, 75, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Earth Orbit
-  ctx.beginPath();
-  ctx.arc(cx - 100, cy, 145, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Venus Planet
-  const venusX = cx - 100 + Math.cos(1.8) * 75;
-  const venusY = cy + Math.sin(1.8) * 75;
-  ctx.beginPath();
-  ctx.arc(venusX, venusY, 7, 0, Math.PI * 2);
-  ctx.fillStyle = '#f59e0b';
-  ctx.fill();
-
-  // Earth Planet
-  const earthX = cx - 100 + Math.cos(3.8) * 145;
-  const earthY = cy + Math.sin(3.8) * 145;
-  ctx.beginPath();
-  ctx.arc(earthX, earthY, 9, 0, Math.PI * 2);
+  ctx.arc(60, 95, 14, 0, Math.PI * 2);
   ctx.fillStyle = '#38bdf8';
   ctx.shadowColor = '#38bdf8';
   ctx.shadowBlur = 10;
   ctx.fill();
   ctx.shadowBlur = 0;
 
-  // Labels
-  ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+  // Draw Venus
+  ctx.beginPath();
+  ctx.arc(330, 95, 12, 0, Math.PI * 2);
+  ctx.fillStyle = '#f59e0b';
+  ctx.fill();
+
+  ctx.fillStyle = '#fff';
   ctx.font = '10px JetBrains Mono';
-  ctx.fillText('SUN', cx - 110, cy - 20);
-  ctx.fillText('VENUS', venusX - 16, venusY + 18);
-  ctx.fillText('EARTH', earthX - 16, earthY + 20);
+  ctx.fillText('EARTH', 45, 130);
+  ctx.fillText('VENUS', 315, 130);
 
-  // Shuttle Trajectory Arc
-  if (shuttle.active) {
-    shuttle.progress += 0.008;
-
-    // Bezier curve trajectory Earth -> Venus
-    const t = shuttle.progress;
-    const p0 = { x: earthX, y: earthY };
-    const p1 = { x: cx, y: cy - 70 };
-    const p2 = { x: venusX, y: venusY };
-
-    shuttle.x = (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * p1.x + t * t * p2.x;
-    shuttle.y = (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * p1.y + t * t * p2.y;
-
-    // Trajectory dashed trace
-    ctx.strokeStyle = '#10b981';
+  if (locked) {
+    ctx.strokeStyle = '#00f0ff';
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
-    ctx.moveTo(p0.x, p0.y);
-    ctx.quadraticCurveTo(p1.x, p1.y, shuttle.x, shuttle.y);
+    ctx.moveTo(60, 95);
+    ctx.quadraticCurveTo(200, 20, 330, 95);
     ctx.stroke();
     ctx.setLineDash([]);
+  }
+}
 
-    // Draw Rocket Shuttle
-    ctx.beginPath();
-    ctx.arc(shuttle.x, shuttle.y, 4, 0, Math.PI * 2);
-    ctx.fillStyle = '#10b981';
-    ctx.shadowColor = '#10b981';
-    ctx.shadowBlur = 12;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    trajVel.textContent = `${(11.2 + t * 18.5).toFixed(1)} km/s`;
-
-    if (shuttle.progress >= 1) {
-      shuttle.active = false;
-      state.isLaunching = false;
-      state.vBlocks = Math.max(0, state.vBlocks - 1);
-      state.launchFuel = 0;
-      state.aqi = Math.max(25, state.aqi - 30);
-      trajStatus.textContent = 'PAYLOAD DELIVERED TO VENUS';
-      trajVel.textContent = '0.0 km/s';
-      updateUI();
-      alert('SUCCESS: 1 Payload of toxic V-Blocks safely ejected from Earth into Venus trajectory! Zero emissions released.');
-    }
+function fireShuttle() {
+  if (!gameState.vance.trajectoryLocked) {
+    return alert('Please calculate the Hohmann Transfer Vector first!');
   }
 
-  requestAnimationFrame(drawOrbitSimulation);
+  addLog('[IGNITION] Electromagnetic pulse released. No chemical smoke emitted.', 'sys');
+  addLog('[TELEMETRY] Payload cleared Earth escape velocity (11.2 km/s)...', 'sys');
+
+  typeDialogue('COMMANDER VANCE', '"Ejection complete. The toxic poison is heading into the Venusian sun-furnace. Earth stays our only home—and today, she breathes a little easier."');
+
+  setTimeout(() => {
+    gameState.earthAqi = 48;
+    globalTimer.textContent = 'EARTH AQI: 48 // CLEAN & RESTORED';
+    addLog('[VICTORY] Remainder of cycle complete. Earth Air Restored to Safe Status.', 'success');
+    alert('PLANETARY DIRECTIVE COMPLETE! Earth healed through Maya, Kael, and Vance.');
+  }, 1800);
 }
 
-function startLaunchSequence() {
-  state.isLaunching = true;
-  shuttle.active = true;
-  shuttle.progress = 0;
-  trajStatus.textContent = 'ESCAPE TRAJECTORY ENGAGED';
-  btnLaunch.disabled = true;
+// --- Unlock Cards Helper ---
+function updateSelectionCards() {
+  if (gameState.kael.unlocked) {
+    cardKael.classList.remove('locked');
+    const btn = cardKael.querySelector('button');
+    btn.disabled = false;
+    btn.className = 'btn-select-char primary';
+    btn.textContent = 'Assume Control: Dr. Kael »';
+  }
+  if (gameState.vance.unlocked) {
+    cardVance.classList.remove('locked');
+    const btn = cardVance.querySelector('button');
+    btn.disabled = false;
+    btn.className = 'btn-select-char primary';
+    btn.textContent = 'Assume Control: Vance »';
+  }
 }
-
-// Initial Run
-spawnDebris();
-updateUI();
-drawOrbitSimulation();
