@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AeroWaste — Planetary Geo-Engineering & Orbital Ejection</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Top Planetary HUD -->
+  <header class="hud-header">
+    <div class="brand">
+      <div class="logo-pulse"></div>
+      <div>
+        <h1>AeroWaste <span class="tag">v1.0 // Kiro-Spec</span></h1>
+        <p class="subtitle">Autonomous Circular Economy & Trans-Venus Ejection Grid</p>
+      </div>
+    </div>
+    <div class="global-metrics">
+      <div class="metric-card">
+        <span class="label">Atmospheric AQI</span>
+        <span class="value critical" id="aqi-display">342 (Hazardous)</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Personal Oxygen Quota</span>
+        <span class="value success" id="oxygen-display">12.5 L</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Grid Energy Bank</span>
+        <span class="value" id="energy-display">1,420 kWh</span>
+      </div>
+      <div class="metric-card">
+        <span class="label">Solidified V-Blocks</span>
+        <span class="value warning" id="vblocks-display">0 Units</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="dashboard-grid">
+
+    <!-- Section 1: Ground Harvest & Citizen Quota -->
+    <section class="card panel-harvest">
+      <div class="panel-header">
+        <span class="step-num">01</span>
+        <h2>Citizen Waste Harvest</h2>
+      </div>
+      <p class="desc">Clear toxic urban plastics from local sectors. Earn breathable oxygen quotas and community governance points.</p>
+      
+      <div class="interactive-field" id="waste-field">
+        <!-- Interactive Waste Clickers spawn here dynamically -->
+      </div>
+
+      <div class="action-row">
+        <button id="btn-collect-all" class="btn primary">Collect Sector Debris (+Waste)</button>
+        <button id="btn-deposit-refinery" class="btn secondary">Deposit to Refinery &raquo;</button>
+      </div>
+      <div class="status-bar">
+        <span>Collected in Bag: <strong id="bag-count">0 kg</strong></span>
+        <span>Clean Air Earned: <strong id="session-oxygen">+0 L</strong></span>
+      </div>
+    </section>
+
+    <!-- Section 2: Vitrification Refinery & Air Capture -->
+    <section class="card panel-refinery">
+      <div class="panel-header">
+        <span class="step-num">02</span>
+        <h2>Plasma Refinery & Vitrification</h2>
+      </div>
+      <p class="desc">Extract electricity from polymer bonds. Sucking airborne particulate matter, compressing toxic sludge into inert bulletproof glass blocks.</p>
+
+      <div class="reactor-visual">
+        <div class="core-chamber" id="reactor-core">
+          <div class="plasma-glow"></div>
+          <span class="core-status" id="core-status">CORE IDLE</span>
+        </div>
+      </div>
+
+      <div class="refinery-stats">
+        <div class="stat-line">
+          <span>Direct Air Capture Rate:</span>
+          <strong>98.4% Efficiency</strong>
+        </div>
+        <div class="stat-line">
+          <span>Sludge Solidification:</span>
+          <span class="badge" id="solidify-badge">Ready for Vitrification</span>
+        </div>
+      </div>
+
+      <button id="btn-refine" class="btn warning-btn">Process Polymers & Solidify Poison</button>
+    </section>
+
+    <!-- Section 3: Orbital Energy Crowdfunding -->
+    <section class="card panel-grid">
+      <div class="panel-header">
+        <span class="step-num">03</span>
+        <h2>Orbital Shuttle Grid</h2>
+      </div>
+      <p class="desc">Trans-Venus ejection requires 5,000 kWh of clean plasma power to break Earth's gravitational well.</p>
+
+      <div class="progress-container">
+        <div class="progress-labels">
+          <span>Current Launch Fuel</span>
+          <span id="fuel-pct">28% (1,420 / 5,000 kWh)</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="fuel-progress-bar" style="width: 28%;"></div>
+        </div>
+      </div>
+
+      <div class="grid-actions">
+        <button id="btn-feed-grid" class="btn primary">Feed Harvested Energy to Shuttle</button>
+      </div>
+      <div class="info-callout">
+        <span class="icon">&#9889;</span>
+        <small>Powered by negative-carbon electromagnetic launch rail. Zero propellant smoke released into the biosphere.</small>
+      </div>
+    </section>
+
+    <!-- Section 4: Deep Space Orbital Trajectory Simulator -->
+    <section class="card panel-orbit">
+      <div class="panel-header">
+        <span class="step-num">04</span>
+        <h2>Trans-Venus Orbital Trajectory</h2>
+      </div>
+      <p class="desc">Deterministic orbital injection simulator. Ejects toxic V-blocks towards Venus where solar radiation breaks them down safely.</p>
+
+      <div class="canvas-wrapper">
+        <canvas id="orbitCanvas" width="500" height="260"></canvas>
+        <div class="telemetry-overlay" id="telemetry">
+          <span>TRAJECTORY: <strong id="traj-status">STANDBY</strong></span>
+          <span>VELOCITY: <strong id="traj-vel">0.0 km/s</strong></span>
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button id="btn-launch-shuttle" class="btn danger" disabled>
+          &#128640; Launch Zero-Emission Ejection Shuttle
+        </button>
+      </div>
+      <p class="launch-warning" id="launch-msg">Requires: Min 1 V-Block & 5,000 kWh Energy</p>
+    </section>
+
+  </main>
+
+  <footer class="hud-footer">
+    <p>AeroWaste Engine &bull; Earth-First Planetary Geo-Engineering &bull; Built with Kiro Architecture</p>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
