@@ -3,47 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AeroWaste — The Living Scene</title>
+  <title>AeroWaste — 2090 Cinematic Experience</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Space+Grotesk:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <!-- Three.js Library for 3D City & Smog -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
-<body class="visual-body">
+<body class="body-cinematic">
 
-  <!-- Ambient Cinematic Frame -->
-  <div class="scene-wrapper">
+  <!-- Cinematic Letterbox Bars (Top & Bottom) -->
+  <div class="letterbox top"></div>
+  <div class="letterbox bottom"></div>
 
-    <!-- Top Status Overlay (Minimalist) -->
-    <header class="scene-header">
-      <div class="status-pill">
-        <span class="blinking-dot"></span>
-        <span id="char-state-label">HUMAN STATUS: STRUGGLING TO BREATHE (COUGHING)</span>
-      </div>
-      <div class="status-metrics">
-        <span>OXYGEN LUNG CAPACITY: <strong id="oxygen-stat" class="danger">14%</strong></span>
-        <span>STREET DEBRIS: <strong id="debris-stat">3 ITEMS</strong></span>
-      </div>
-    </header>
-
-    <!-- The Visual Animated World Canvas -->
-    <div class="canvas-viewport">
-      <canvas id="worldCanvas" width="1100" height="550"></canvas>
-      
-      <!-- Interactive Hint on Ground -->
-      <div class="click-hint" id="click-hint">
-        &#128070; Click on any plastic waste on the road to send the human to pick it up
-      </div>
+  <!-- Step 1: 2090 Intro Overlay Screen -->
+  <div id="intro-screen" class="intro-overlay">
+    <div class="intro-content">
+      <span class="intro-tag">INITIALIZING ARCHIVE // DATE: NOVEMBER 13, 2090</span>
+      <h1 class="intro-heading">WELCOME TO 2090:<br>THE GREAT CHOKING</h1>
+      <p class="intro-sub">"The air is thick, the ground is plastic, and humanity chose to look away."</p>
+      <button id="btn-enter-world" class="btn-cinematic-enter">ENTER PROTOCOL &raquo;</button>
     </div>
-
-    <!-- Director's Controls (To help you test & polish) -->
-    <footer class="director-toolbar">
-      <button id="btn-spawn-trash" class="tool-btn">+ Drop More Waste on Road</button>
-      <button id="btn-toggle-smog" class="tool-btn">Toggle Heavy Smog</button>
-      <button id="btn-reset-scene" class="tool-btn">Reset Character Position</button>
-    </footer>
-
   </div>
 
-  <script src="app.js?v=3"></script>
+  <!-- 3D Canvas Container for City & Smog -->
+  <div id="canvas-container"></div>
+
+  <!-- HUD Layer over 3D City -->
+  <div id="city-hud" class="city-hud hidden">
+    <div class="hud-location">LOCATION: SECTOR 01 // NEO-TOKYO / KARACHI REMAINS</div>
+    <div class="hud-action-hint">Use mouse to look around the dystopian skyline. Click below when ready for the Corporate Boardroom.</div>
+    <button id="btn-goto-boardroom" class="btn-hud-next">PROCEED TO CORPORATE BOARDROOM &rarr;</button>
+  </div>
+
+  <script src="app.js"></script>
 </body>
 </html>
