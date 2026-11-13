@@ -3,155 +3,47 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AeroWaste — The Planetary Ejection Protocol</title>
+  <title>AeroWaste — The Living Scene</title>
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 </head>
-<body class="cinematic-theme">
+<body class="visual-body">
 
-  <!-- Cinematic Scanlines & Vignette Overlay -->
-  <div class="crt-overlay"></div>
-  <div class="vignette"></div>
+  <!-- Ambient Cinematic Frame -->
+  <div class="scene-wrapper">
 
-  <!-- Audio Atmosphere Toggle -->
-  <header class="top-nav">
-    <div class="nav-brand">
-      <span class="pulse-dot"></span>
-      <span class="brand-text">AEROWASTE // EARTH HEALING DIRECTIVE</span>
+    <!-- Top Status Overlay (Minimalist) -->
+    <header class="scene-header">
+      <div class="status-pill">
+        <span class="blinking-dot"></span>
+        <span id="char-state-label">HUMAN STATUS: STRUGGLING TO BREATHE (COUGHING)</span>
+      </div>
+      <div class="status-metrics">
+        <span>OXYGEN LUNG CAPACITY: <strong id="oxygen-stat" class="danger">14%</strong></span>
+        <span>STREET DEBRIS: <strong id="debris-stat">3 ITEMS</strong></span>
+      </div>
+    </header>
+
+    <!-- The Visual Animated World Canvas -->
+    <div class="canvas-viewport">
+      <canvas id="worldCanvas" width="1100" height="550"></canvas>
+      
+      <!-- Interactive Hint on Ground -->
+      <div class="click-hint" id="click-hint">
+        &#128070; Click on any plastic waste on the road to send the human to pick it up
+      </div>
     </div>
-    <div class="nav-status">
-      <span class="time-stamp" id="global-timer">EARTH AQI: 382 // HAZARDOUS</span>
-      <button id="btn-ambient-sound" class="btn-sound">&#128266; AMBIENT AUDIO</button>
-    </div>
-  </header>
 
-  <!-- Main Cinematic Frame -->
-  <div class="cinematic-container">
-
-    <!-- Screen 1: Character Selection (The Operatives) -->
-    <section id="screen-character-select" class="scene active">
-      <div class="scene-heading">
-        <span class="sub-label">ACT I: THE THREE ANCHORS OF EARTH</span>
-        <h1 class="main-title">SELECT YOUR OPERATIVE</h1>
-        <p class="scene-desc">Earth cannot be abandoned for Mars. Healing requires three people in perfect synchronization. Choose your vantage point.</p>
-      </div>
-
-      <div class="character-grid">
-
-        <!-- Character 1: Maya -->
-        <div class="character-card" data-char="maya">
-          <div class="char-avatar maya-avatar">
-            <div class="avatar-tag">SECTOR 04 // GROUND</div>
-          </div>
-          <div class="char-details">
-            <h3>Maya Chen</h3>
-            <span class="char-role">Urban Scavenger & Waste Harvester</span>
-            <p class="char-bio">Suffers from severe atmospheric toxin allergies. Her re-breather filter has 8 minutes remaining. Every 10kg of polymer she harvests earns her 15 liters of pure medical oxygen.</p>
-            <div class="char-stat">
-              <span>Lung Filter Integrity</span>
-              <strong class="color-warn">18% (Critical)</strong>
-            </div>
-            <button class="btn-select-char primary">Assume Control: Maya &raquo;</button>
-          </div>
-        </div>
-
-        <!-- Character 2: Dr. Kael -->
-        <div class="character-card locked" data-char="kael" id="card-kael">
-          <div class="char-avatar kael-avatar">
-            <div class="avatar-tag">SECTOR 09 // SUB-TERRAIN</div>
-          </div>
-          <div class="char-details">
-            <h3>Dr. Kaelen Thorne</h3>
-            <span class="char-role">Vitrification & Direct Air Specialist</span>
-            <p class="char-bio">Operates the subterranean plasma arc furnace. Traps toxic soot out of the air while fusing harvested polymers into ultra-dense, non-reactive bulletproof glass bricks (V-Blocks).</p>
-            <div class="char-stat">
-              <span>Reactor Core Stability</span>
-              <strong class="color-cyan">94% (Awaiting Feed)</strong>
-            </div>
-            <button class="btn-select-char secondary" disabled>Complete Maya's Mission First</button>
-          </div>
-        </div>
-
-        <!-- Character 3: Commander Vance -->
-        <div class="character-card locked" data-char="vance" id="card-vance">
-          <div class="char-avatar vance-avatar">
-            <div class="avatar-tag">ORBITAL GANTRY // EQUATORIAL</div>
-          </div>
-          <div class="char-details">
-            <h3>Commander Vance</h3>
-            <span class="char-role">Negative-Carbon Flight Director</span>
-            <p class="char-bio">Commands the magnetic railgun array. Loads stabilized toxic V-blocks into solid kinetic penetrators, using gravitational slingshots to discard them safely into the Venusian inferno.</p>
-            <div class="char-stat">
-              <span>Launch Rail Capacitance</span>
-              <strong class="color-amber">32% (Needs Plasma Power)</strong>
-            </div>
-            <button class="btn-select-char secondary" disabled>Complete Factory Synthesis First</button>
-          </div>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- Screen 2: Interactive Mission Cockpit -->
-    <section id="screen-mission-cockpit" class="scene">
-      <div class="mission-top-bar">
-        <button id="btn-back-to-select" class="btn-text">&larr; Return to Operatives</button>
-        <span class="active-operative-badge" id="active-op-title">OPERATIVE: MAYA CHEN</span>
-        <span class="mission-objective" id="mission-objective">OBJECTIVE: Collect 30kg polymers to recharge oxygen</span>
-      </div>
-
-      <div class="interactive-cockpit-stage">
-
-        <!-- Stage Canvas / Visual Feedback Area -->
-        <div class="stage-visual" id="stage-visual-container">
-          <div class="cockpit-hud-overlay">
-            <div class="hud-box">
-              <span class="hud-label">LOCAL TOXIN PPM</span>
-              <span class="hud-val color-warn" id="hud-toxin">488 PPM</span>
-            </div>
-            <div class="hud-box">
-              <span class="hud-label">AIR RESERVE</span>
-              <span class="hud-val color-cyan" id="hud-reserve">3.2 L</span>
-            </div>
-          </div>
-
-          <!-- Dynamic Interactive Workspace -->
-          <div class="stage-workspace" id="stage-workspace">
-            <!-- Dynamic elements spawn here depending on character -->
-          </div>
-
-          <!-- Story Dialogue Box (Cinematic Typewriter) -->
-          <div class="dialogue-box">
-            <div class="dialogue-avatar" id="dialogue-speaker">MAYA</div>
-            <div class="dialogue-content">
-              <p id="dialogue-text">"The air tastes like burning wire today. If I don't scavenge enough high-grade polymers for the refinery, my respirator shuts down in ten minutes..."</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Mission Action Controls -->
-        <div class="stage-controls" id="stage-controls">
-          <div class="control-panel-header">
-            <h4>DIRECT OPERATIVE ACTIONS</h4>
-          </div>
-          <div class="control-actions" id="control-buttons-container">
-            <!-- Dynamic buttons generated by app.js -->
-          </div>
-          <div class="mission-log" id="mission-log">
-            <p class="log-entry sys">[SYSTEM] Protocol initialized. Earth remediation loop active.</p>
-          </div>
-        </div>
-
-      </div>
-    </section>
+    <!-- Director's Controls (To help you test & polish) -->
+    <footer class="director-toolbar">
+      <button id="btn-spawn-trash" class="tool-btn">+ Drop More Waste on Road</button>
+      <button id="btn-toggle-smog" class="tool-btn">Toggle Heavy Smog</button>
+      <button id="btn-reset-scene" class="tool-btn">Reset Character Position</button>
+    </footer>
 
   </div>
 
-  <footer class="cinematic-footer">
-    <p>AEROWASTE // EARTH PRESERVATION DIRECTIVE &bull; POWERED BY DETERMINISTIC LOGIC</p>
-  </footer>
-
-  <script src="app.js"></script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
